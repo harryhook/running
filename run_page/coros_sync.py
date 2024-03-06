@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import hashlib
 import logging
 import os
 
@@ -142,5 +143,6 @@ if __name__ == "__main__":
 
     account = options.account
     password = options.password
+    encrypted_pwd = hashlib.md5(password.encode()).hexdigest()
 
-    asyncio.run(download_and_generate(account, password))
+    asyncio.run(download_and_generate(account, encrypted_pwd))
