@@ -13,7 +13,7 @@ from utils import make_activities_file
 COROS_URL_DICT = {
     "LOGIN_URL": "https://teamcnapi.coros.com/account/login",
     "DOWNLOAD_URL": "https://teamcnapi.coros.com/activity/detail/download",
-    "ACTIVITY_LIST": "https://teamcnapi.coros.com/activity/query?&modeList=100,102,103",  # 100: 跑步，101: 跑步机, 102: 运动场, 103: 越野
+    "ACTIVITY_LIST": "https://teamcnapi.coros.com/activity/query?&modeList=100,102,103",
 }
 
 TIME_OUT = httpx.Timeout(240.0, connect=360.0)
@@ -69,12 +69,14 @@ class Coros:
             data = response.json()
             activities = data.get("data", {}).get("dataList", None)
             if not activities:
-                break  # 如果当前页面没有活动，结束循环
+                break
             for activity in activities:
                 label_id = activity["labelId"]
+                if label_id is None:
+                    continue
                 all_activities_ids.append(label_id)
 
-            page_number += 1  # 准备获取下一个页面的数据
+            page_number += 1
 
         return all_activities_ids
 
@@ -85,7 +87,6 @@ class Coros:
         try:
             response = await self.req.post(download_url)
             resp_json = response.json()
-            time.sleep(0.5)
             file_url = resp_json.get("data", {}).get("fileUrl")
             if not file_url:
                 print(f"No file URL found for label_id {label_id}")
@@ -127,17 +128,30 @@ async def download_and_generate(account, password):
     to_generate_coros_ids = list(set(activity_ids) - set(downloaded_ids))
     print("to_generate_activity_ids: ", len(to_generate_coros_ids))
 
-    for label_id in to_generate_coros_ids:
-        await coros.download_activity(label_id)
-    # 处理图片
+    start_time = time.time()
+    await gather_with_concurrency(
+        10,
+        [coros.download_activity(label_d) for label_d in to_generate_coros_ids],
+    )
+    print(f"Download finished. Elapsed {time.time()-start_time} seconds")
     make_activities_file(SQL_FILE, FIT_FOLDER, JSON_FILE, "fit")
+
+
+async def gather_with_concurrency(n, tasks):
+    semaphore = asyncio.Semaphore(n)
+
+    async def sem_task(task):
+        async with semaphore:
+            return await task
+
+    return await asyncio.gather(*(sem_task(task) for task in tasks))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("account", nargs="?", help="input coros account")
 
-    parser.add_argument("password", nargs="?", help="input coros  password")
+    parser.add_argument("password", nargs="?", help="input coros password")
     options = parser.parse_args()
 
     account = options.account
