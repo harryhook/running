@@ -50,8 +50,9 @@ class Coros:
             resp_json = response.json()
             access_token = resp_json.get("data", {}).get("accessToken")
             if not access_token:
-                print("Login failed!!!! please check your account and password!!!")
-                return
+                raise Exception(
+                    "============login failed! please check your account and password==========="
+                )
             self.headers = {
                 "accesstoken": access_token,
                 "cookie": f"CPL-coros-region=2; CPL-coros-token={access_token}",
