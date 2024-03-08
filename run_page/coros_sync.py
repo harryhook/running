@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import hashlib
 import os
+import time
 
 import aiofiles
 import httpx
@@ -80,9 +81,11 @@ class Coros:
     async def download_activity(self, label_id):
         download_folder = FIT_FOLDER
         download_url = f"{COROS_URL_DICT.get('DOWNLOAD_URL')}?labelId={label_id}&sportType=100&fileType=4"
+        file_url = None
         try:
             response = await self.req.post(download_url)
             resp_json = response.json()
+            time.sleep(0.5)
             file_url = resp_json.get("data", {}).get("fileUrl")
             if not file_url:
                 print(f"No file URL found for label_id {label_id}")
