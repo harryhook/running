@@ -16,6 +16,10 @@ const data: ISiteMetadataResult = {
   description: 'Personal site and blog',
   navLinks: [
     {
+      name: 'Summary',
+      url: `${import.meta.env.BASE_URL}summary`,
+    },
+    {
       name: 'Blog',
       url: 'https://coderunning.fun/',
     },
